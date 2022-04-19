@@ -419,15 +419,14 @@ func separatorStage(left interface{}, right interface{}, parameters Parameters) 
 
 func inStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
 	
-	
-	for _, value := range right.([]interface{}) {
+	rightVals := right.([]interface{})
+	for _, rightVal := range rightVals {
 
-		if left == value {
+		if left == rightVal {
 			return true, nil
 		}
 	}
-	test := strconv.Itoa(left)
-	return test, nil
+	return false, nil
 }
 
 func isString(value interface{}) bool {
