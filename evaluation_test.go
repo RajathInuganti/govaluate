@@ -710,7 +710,7 @@ func TestNoParameterEvaluation(test *testing.T) {
 			Expected: true,
 		},
 		EvaluationTest{
-			
+
 			Name:  "Ternary/Java EL ambiguity",
 			Input: "false ? foo:length()",
 			Functions: map[string]ExpressionFunction{
@@ -1435,6 +1435,149 @@ func TestNilParameters(test *testing.T) {
 	if err != nil {
 		test.Fail()
 	}
+}
+
+func TestEvaluableExpressionMarshaling(test *testing.T) {
+
+	evaluationTests := []EvaluationTest{
+		EvaluationTest{
+
+			Name:     "Modifier after closing clause",
+			Input:    "(2 + 2) + 2 == 6",
+			Expected: true,
+		},
+		EvaluationTest{
+
+			Name:  "Mixed function and parameters",
+			Input: "sum(1.2, amount) + name",
+			Functions: map[string]ExpressionFunction{
+				"sum": func(arguments ...interface{}) (interface{}, error) {
+
+					sum := 0.0
+					for _, v := range arguments {
+						sum += v.(float64)
+					}
+					return sum, nil
+				},
+			},
+			Parameters: []EvaluationParameter{
+				EvaluationParameter{
+					Name:  "amount",
+					Value: .8,
+				},
+				EvaluationParameter{
+					Name:  "name",
+					Value: "awesome",
+				},
+			},
+
+			Expected: "2awesome",
+		},
+		EvaluationTest{
+
+			Name:       "Parameter call with + modifier",
+			Input:      "1 + foo.Int",
+			Parameters: []EvaluationParameter{fooParameter},
+			Expected:   102.0,
+		},
+		EvaluationTest{
+
+			Name:  "Empty function as part of chain",
+			Input: "10 - numeric() - 2",
+			Functions: map[string]ExpressionFunction{
+				"numeric": func(arguments ...interface{}) (interface{}, error) {
+					return 5.0, nil
+				},
+			},
+
+			Expected: 3.0,
+		},
+		EvaluationTest{
+
+			Name:  "Empty function near separator",
+			Input: "10 in (1, 2, 3, ten(), 8)",
+			Functions: map[string]ExpressionFunction{
+				"ten": func(arguments ...interface{}) (interface{}, error) {
+					return 10.0, nil
+				},
+			},
+
+			Expected: true,
+		},
+		EvaluationTest{
+
+			Name:  "Enclosed empty function with modifier and comparator (#28)",
+			Input: "(ten() - 1) > 3",
+			Functions: map[string]ExpressionFunction{
+				"ten": func(arguments ...interface{}) (interface{}, error) {
+					return 10.0, nil
+				},
+			},
+
+			Expected: true,
+		},
+	}
+
+	runMarshalingTests(evaluationTests, test)
+}
+
+func runMarshalingTests(evaluationTests []EvaluationTest, test *testing.T) {
+
+	var expression *EvaluableExpression
+	var err error
+
+	fmt.Printf("Running %d marshaling test cases...\n", len(evaluationTests))
+
+	for _, evaluationTest := range evaluationTests {
+
+		if evaluationTest.Functions != nil {
+			expression, err = NewEvaluableExpressionWithFunctions(evaluationTest.Input, evaluationTest.Functions)
+		} else {
+			expression, err = NewEvaluableExpression(evaluationTest.Input)
+		}
+
+		if err != nil {
+
+			test.Logf("Test '%s' failed to parse: '%s'", evaluationTest.Name, err)
+			test.Fail()
+			continue
+		}
+
+		tokens := expression.Tokens()
+		bytes, err := expression.MarshalTokens()
+
+		if err != nil {
+			test.Logf("Test '%s' marshaling failed", evaluationTest.Name)
+			test.Logf("Encountered error: %s", err.Error())
+			test.Fail()
+		}
+
+		data, err := UnmarshalTokens(bytes)
+
+		if err != nil {
+			test.Logf("Test '%s' unmarshaling failed", evaluationTest.Name)
+			test.Logf("Encountered error: %s", err.Error())
+			test.Fail()
+		}
+
+		if len(tokens) != len(data.Tokens) {
+			test.Logf("Test '%s' (Un)Marshaling failed", evaluationTest.Name)
+			test.Fail()
+		}
+
+		for index, token := range tokens {
+
+			if token.Kind != data.Tokens[index].Kind {
+				test.Logf("Token kind %s does not match with Unmarshalled Kind: %s", token.Kind.String(), data.Tokens[index].Kind.String())
+				test.Logf("Test '%s' (Un)Marshaling failed", evaluationTest.Name)
+				test.Fail()
+			} else {
+				test.Logf("Token kind %s with Value: %+v, matches with Unmarshalled Kind: %s with Value: %+v",
+					token.Kind.String(), token.Value, data.Tokens[index].Kind.String(), data.Tokens[index].Value)
+			}
+		}
+	}
+
 }
 
 /*
