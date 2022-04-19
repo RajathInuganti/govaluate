@@ -422,7 +422,7 @@ func inStage(left interface{}, right interface{}, parameters Parameters) (interf
 	rightVals := right.([]interface{})
 	for _, rightVal := range rightVals {
 
-		if left == rightVal {
+		if int(left) == rightVal {
 			return true, nil
 		}
 	}
