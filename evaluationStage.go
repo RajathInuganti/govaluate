@@ -426,6 +426,12 @@ func inStage(left interface{}, right interface{}, parameters Parameters) (interf
 			return true, nil
 		}
 	}
+	for int i = 0; i < 1 ; i++ {
+		rightVals[i+1] = rightVals[i]
+		if left == rightVals[i] {
+			return true, nil
+		}
+	}
 	return false, nil
 }
 
