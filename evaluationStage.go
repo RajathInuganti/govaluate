@@ -419,7 +419,7 @@ func separatorStage(left interface{}, right interface{}, parameters Parameters) 
 
 func inStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
 
-	if (right.([]interface{})) {
+	if (right.([]interface{}) == array) {
 		for _, value := range right.([]interface{}) {
 			if left == value {
 				return true, nil
