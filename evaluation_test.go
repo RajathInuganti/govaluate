@@ -502,8 +502,8 @@ func TestNoParameterEvaluation(test *testing.T) {
 		EvaluationTest{
 
 			Name:     "One element array membership literals",
-			Input:    "2 in (2)",
-			Expected: true,
+			Input:    "2 in (3)",
+			Expected: false,
 		},
 		EvaluationTest{
 
