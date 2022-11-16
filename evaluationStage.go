@@ -418,12 +418,29 @@ func separatorStage(left interface{}, right interface{}, parameters Parameters) 
 }
 
 func inStage(left interface{}, right interface{}, parameters Parameters) (interface{}, error) {
+	
+	rightVals := right.([]interface{})
+	for _, rightVal := range rightVals {
 
-	for _, value := range right.([]interface{}) {
-		if left == value {
+		if left == rightVal {
 			return true, nil
 		}
 	}
+	if(len(right.([]interface{})) == 1) {
+		var duplicate []interface{} = make([]interface{}, len(right.([]interface{})+1))
+		for i, d := range rightVals {
+			duplicate[i] = d
+			duplicate[i+1] = d
+		}
+		for _, rightVal := range duplicate {
+
+			if left == rightVal {
+				return true, nil
+			}
+		}
+	}
+	
+	
 	return false, nil
 }
 
